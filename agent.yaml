@@ -1,0 +1,37 @@
+version: "2.0"
+metadata:
+  name: "artifact-cleanroom"
+  description: "Advanced Automated AI Code Quarantine and Guardrail Environment"
+
+topology:
+  states:
+    - id: "quarantine_ingress"
+      type: "gate"
+      description: "Isolate untrusted AI-generated artifacts inside a restricted sandbox zone before execution clearance."
+      transitions:
+        next: "import_dependency_reputation_check"
+
+    - id: "import_dependency_reputation_check"
+      type: "tool_execution"
+      tool: "cleanroom_scanner.py"
+      description: "Analyze code lines for external package imports, tracking reputation anomalies or hidden system-level requests."
+      transitions:
+        on_flagged: "semantic_intent_investigation"
+        on_clear: "artifact_release"
+
+    - id: "semantic_intent_investigation"
+      type: "llm_evaluation"
+      model: "gemini-2.5-flash"
+      prompt: >
+        Analyze the structural intent and execution risk of the flagged payload. Determine if the shell commands, internal evaluations, or script calls represent malicious injections or unauthorized terminal automation.
+      transitions:
+        on_malicious: "quarantine_suspend"
+        on_false_positive: "artifact_release"
+
+    - id: "quarantine_suspend"
+      type: "termination"
+      status: "REJECTED_RISK"
+
+    - id: "artifact_release"
+      type: "completion"
+      status: "APPROVED_SAFE"
